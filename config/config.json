@@ -1,0 +1,11 @@
+{
+  "options_layers": [
+    { "Application": [{"HTTP": ""}, {"DNS": ""}, {"Raw": ""}] },
+    { "Presentation": [] },
+    { "Session": [] },
+    { "Transport": [{"TCP": ""}, {"UDP": ""}] },
+    { "Network": [{"IP": ""}, {"IPv6": ""}, {"ICMP": ""}] },
+    { "Data Link": [{"Ether": ""}, {"ARP": ""}, {"Dot1Q": ""}] },
+    { "Physical": [{"Co tu pisze?": ""}] }
+  ]
+}
