@@ -99,7 +99,9 @@ def main():
     selected_iface_guid = get_iface.iface_selection()
 
     sniffing_thread = threading.Thread(
-        target=start_sniffing, args=(selected_iface_guid,), daemon=True
+        target=start_sniffing,
+        args=(selected_iface_guid,),
+        daemon=True
     )
 
     sniffing_thread.start()

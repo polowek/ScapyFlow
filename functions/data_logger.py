@@ -17,20 +17,28 @@ class DataLogger:
     def save_log(self):
         all_data = []
 
-        if os.path.exists(DATA_SRC):
-            try:
-                with open(DATA_SRC, "r", encoding="UTF-8") as f:
-                    content = load(f)
-
-                    if isinstance(content, list):
-                        all_data = content
-
-            except (JSONDecodeError, ValueError):
-                pass
-
-            all_data.extend(self.data)
+        if not os.path.exists(DATA_SRC):
+            os.makedirs(os.path.dirname(DATA_SRC), exist_ok=True)
 
             with open(DATA_SRC, "w", encoding="UTF-8") as f:
-                dump(all_data, f, indent=4, ensure_ascii=False)
+                dump([], f, indent=4, ensure_ascii=False)
 
-            self.data = {}
+            print(f"[INFO] Created missing file: {DATA_SRC}")
+
+        try:
+            with open(DATA_SRC, "r", encoding="UTF-8") as f:
+                content = load(f)
+
+                if isinstance(content, list):
+                    all_data = content
+
+        except (JSONDecodeError, ValueError) as e:
+            print(f"[WARNING] File {DATA_SRC} is corrupted or empty (error: {e}). Starting with a fresh list.")
+
+        all_data.extend(self.data)
+
+        with open(DATA_SRC, "w", encoding="UTF-8") as f:
+            dump(all_data, f, indent=4, ensure_ascii=False)
+
+        self.data = []
+        print(f"[SUCCESS] Successfully saved data to {DATA_SRC}")
