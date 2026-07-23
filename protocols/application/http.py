@@ -1,6 +1,7 @@
 import textwrap
 import threading
 import uuid
+from datetime import datetime
 
 from scapy.all import sniff
 
@@ -46,53 +47,56 @@ def packet_callback(pkt):
             else:
                 method = parts[0]
 
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            is_request = "REQUEST" if method != "Unknown" else "RESPONSE"
+
             info = {
                 "id": str(uuid.uuid4()),
+                "type": is_request,
                 "method": method,
                 "status": status,
                 "src": src_ip,
                 "host": headers.get("host", "Unknown"),
                 "user-agent": headers.get("user-agent", "Unknown"),
                 "content-type": headers.get("content-type", "Unknown"),
+                "timestamp": timestamp,
             }
 
             data.append(info)
 
-            if info["method"] != "Unknown":
+            if is_request == "REQUEST":
                 description = textwrap.dedent(f"""
-                    --- REQUEST CLIENT ---
+                    --- HTTP REQUEST ---
 
                     Method: {info['method']}
-                    Src: {info['src']}
+                    Source: {info['src']}
                     Host: {info['host']}
                     User-Agent: {info['user-agent']}
 
+                    Time: {info['timestamp']}
                     [Internal Log ID: {info['id']}]
 
                     """).strip()
-
-                print()
-                print(description)
-                return
-
             else:
                 description = textwrap.dedent(f"""
-                    --- RESPONSE SERVER ---
+                    --- HTTP RESPONSE ---
 
                     Status: {info['status']}
-                    Src: {info['src']}
+                    Source: {info['src']}
                     Content-Type: {info['content-type']}
 
+                    Time: {info['timestamp']}
                     [Internal Log ID: {info['id']}]
 
                     """).strip()
 
-                print()
-                print(description)
+            print()
+            print(description)
 
 
 def start_sniffing(iface_guid):
-    sniff(iface=iface_guid, filter="tcp port 80", prn=packet_callback)
+    sniff(iface=iface_guid, filter="tcp port 80", prn=packet_callback, store=False)
 
 
 def main():
@@ -113,8 +117,9 @@ def main():
         key = utils.get_key()
 
         if key == "\x1b":
-            http_log = data_logger.DataLogger("HTTP", selected_iface_guid, data)
-            http_log.save_log()
+            if data:
+                http_log = data_logger.DataLogger("HTTP", selected_iface_guid, data)
+                http_log.save_log()
 
             print("\nStopping the sniffer...")
             break
