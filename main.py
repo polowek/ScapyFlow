@@ -7,7 +7,7 @@ from json import load
 from functions import utils
 from protocols.physical.main import show_network_interface
 
-CONFIG_SRC = r"config/config.json"
+CONFIG_PATH = r"config/config.json"
 
 
 class Layer:
@@ -38,7 +38,7 @@ class Layer:
         func()
 
     def get_options(self):
-        with open(CONFIG_SRC, "r", encoding="UTF-8") as f:
+        with open(CONFIG_PATH, "r", encoding="UTF-8") as f:
             config_data = load(f)
 
         self.layer_key = (

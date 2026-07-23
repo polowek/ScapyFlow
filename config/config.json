@@ -1,4 +1,19 @@
 {
+  "ignored_domains": [
+    "mcafee.com",
+    "microsoft.com",
+    "windows.com",
+    "telemetry",
+    "marsflag.com",
+    "adobedtm.com",
+    "edgekey.net",
+    "google-analytics.com",
+    "googletagmanager.com",
+    "doubleclick.net",
+    "hotjar.com",
+    "sentry.io"
+  ],
+
   "options_layers": [
     { "Application": [{"HTTP": ""}, {"DNS": ""}, {"Raw": ""}] },
     { "Presentation": [] },

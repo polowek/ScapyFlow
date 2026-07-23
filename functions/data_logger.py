@@ -41,4 +41,4 @@ class DataLogger:
             dump(all_data, f, indent=4, ensure_ascii=False)
 
         self.data = []
-        print(f"[SUCCESS] Successfully saved data to {DATA_SRC}")
+        print(f"\n[SUCCESS] Successfully saved data to {DATA_SRC}")
