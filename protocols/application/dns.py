@@ -1,11 +1,7 @@
 import json
 import textwrap
-import threading
 import uuid
 from datetime import datetime
-
-from functions import data_logger, get_iface, utils
-from scapy.all import sniff
 
 data = []
 
@@ -88,31 +84,3 @@ def packet_callback(pkt):
 
         print()
         print(description)
-
-
-def start_sniffing(iface_guid):
-    sniff(iface=iface_guid, filter="udp port 53", prn=packet_callback, store=False)
-
-
-def main():
-    selected_iface_guid = get_iface.iface_selection()
-
-    sniffing_thread = threading.Thread(
-        target=start_sniffing, args=(selected_iface_guid,), daemon=True
-    )
-
-    sniffing_thread.start()
-
-    print(f"Listening on: {selected_iface_guid}")
-    print("\nPress ESC to stop sniffing...")
-
-    while True:
-        key = utils.get_key()
-
-        if key == "\x1b":
-            if data:
-                dns_log = data_logger.DataLogger("DNS", selected_iface_guid, data)
-                dns_log.save_log()
-
-            print("\nStopping the sniffer...")
-            break

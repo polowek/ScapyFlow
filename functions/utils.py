@@ -2,7 +2,6 @@ import os
 import select
 import sys
 
-
 if os.name == "nt":  # Windows
     import msvcrt
 
