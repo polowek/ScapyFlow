@@ -14,13 +14,27 @@
     "sentry.io"
   ],
 
-  "options_layers": [
-    { "Application": [{"HTTP": ""}, {"DNS": ""}, {"Raw": ""}] },
-    { "Presentation": [] },
-    { "Session": [] },
-    { "Transport": [{"TCP": ""}, {"UDP": ""}] },
-    { "Network": [{"IP": ""}, {"IPv6": ""}, {"ICMP": ""}] },
-    { "Data Link": [{"Ether": ""}, {"ARP": ""}, {"Dot1Q": ""}] },
-    { "Physical": [{"Co tu pisze?": ""}] }
-  ]
+  "options_layers": {
+    "Application": ["HTTP", "DNS", "Raw"],
+    "Presentation": ["HTTP", "DNS", "Raw"],
+    "Session": ["HTTP", "DNS", "Raw"],
+    "Transport": ["TCP", "UDP"],
+    "Network": ["IP", "IPv6", "ICMP"],
+    "Data Link": ["Ether", "ARP", "Dot1Q"],
+    "Physical": []
+  },
+
+  "protocols_config": {
+    "HTTP": {"handler": "packet_callback", "sniff_filter": "tcp port 80"},
+    "DNS": {"handler": "packet_callback", "sniff_filter": "udp port 53"},
+    "Raw": {"handler": "packet_callback", "sniff_filter": ""},
+    "TCP": {"handler": "packet_callback", "sniff_filter": "tcp"},
+    "UDP": {"handler": "packet_callback", "sniff_filter": "udp"},
+    "IP": {"handler": "packet_callback", "sniff_filter": "ip"},
+    "IPv6": {"handler": "packet_callback", "sniff_filter": "ip6"},
+    "ICMP": {"handler": "packet_callback", "sniff_filter": "icmp"},
+    "Ether": {"handler": "packet_callback", "sniff_filter": ""},
+    "ARP": {"handler": "packet_callback", "sniff_filter": "arp"},
+    "Dot1Q": {"handler": "packet_callback", "sniff_filter": "vlan"}
+  }
 }

@@ -2,9 +2,12 @@ import importlib
 import os
 import subprocess
 import textwrap
+import threading
 from json import load
 
-from functions import utils
+from scapy.all import sniff
+
+from functions import data_logger, get_iface, utils
 from protocols.physical.main import show_network_interface
 
 CONFIG_PATH = r"config/config.json"
@@ -21,60 +24,104 @@ class Layer:
         7: "Application",
     }
 
-    def __init__(self, layer_number, forced_name=None):
-        self.layer = layer_number
-        self.layer_name = (
-            forced_name if forced_name else self.layers.get(layer_number, "Unknown")
+    def __init__(self, layer_number):
+        self.layer_number = layer_number
+        self.layer_name = self.layers.get(layer_number, "Unknown")
+
+    def get_protocol_config(self, protocol):
+        with open(CONFIG_PATH, "r", encoding="UTF-8") as f:
+            config_data = load(f)
+
+        handler = config_data["protocols_config"][protocol]["handler"]
+        sniff_filter = config_data["protocols_config"][protocol]["sniff_filter"]
+
+        return handler, sniff_filter
+
+    def get_information(self, protocol):
+        module = None
+        
+        current_folder = self.layer_name.lower()
+        other_folders = [layer.lower() for layer in self.layers.values() if layer.lower() != current_folder]
+        
+        search_paths = [current_folder] + other_folders
+        
+        searched_modules = []
+        for folder_name in search_paths:
+            module_path = f"protocols.{folder_name}.{protocol.lower()}"
+            searched_modules.append(module_path)
+            try:
+                module = importlib.import_module(module_path)
+                break
+            except ModuleNotFoundError:
+                continue
+
+        if not module:
+            raise ModuleNotFoundError(
+                f"No module found for protocol '{protocol}'. Searched paths: {searched_modules}"
+            )
+
+        handler, sniff_filter = self.get_protocol_config(protocol)
+
+        try:
+            packet_callback = getattr(module, handler or "packet_callback")
+        except AttributeError:
+            print(f"\n[ERROR] Module '{module.__name__}' does not have a handler function named '{handler}'!")
+            print(f"Please check your JSON configuration file and the function name in the protocol file.")
+
+            utils.get_key()
+            return
+
+        selected_iface_guid = get_iface.iface_selection()
+
+        sniffing_thread = threading.Thread(
+            target=sniff,
+            kwargs={
+                "iface": selected_iface_guid,
+                "filter": sniff_filter,
+                "prn": packet_callback,
+                "store": False
+            },
+            daemon=True
         )
-        self.layer_key = None
 
-    def get_information(self, protocol, value):
-        module_path = f"protocols.{self.layer_key.lower()}.{protocol.lower()}"
+        sniffing_thread.start()
 
-        module = importlib.import_module(module_path)
+        print(f"Listening on: {selected_iface_guid}")
+        print("\nPress ESC to stop sniffing...")
 
-        func = getattr(module, value or "main")
+        while True:
+            key = utils.get_key()
 
-        func()
+            if key == "\x1b":
+                print("\nStopping the sniffer...")
+                
+                collected_data = getattr(module, "data", [])
+                if collected_data:
+                    log = data_logger.DataLogger(protocol, selected_iface_guid, collected_data)
+                    log.save_log()
+                break
 
     def get_options(self):
         with open(CONFIG_PATH, "r", encoding="UTF-8") as f:
             config_data = load(f)
 
-        self.layer_key = (
-            "Application"
-            if self.layer_name in ("Session", "Presentation")
-            else self.layer_name
-        )
+        protocols_list = config_data["options_layers"][self.layer_name]
 
-        for layer_definition in config_data["options_layers"]:
-            if self.layer_key in layer_definition:
-                return self.layer_name, layer_definition[self.layer_key]
+        return protocols_list
 
     def show_options(self):
-        if self.layer == 1:
+        if self.layer_number == 1:
             show_network_interface()
             utils.get_key()
             return
 
-        selected_layer, layer_protocols = self.get_options()
-
-        protocol_map = {}
-        for protocol_definition in layer_protocols:
-            if isinstance(protocol_definition, dict):
-                protocol_map.update(protocol_definition)
-            else:
-                protocol_map[protocol_definition] = "main"
-
-        upper_map = {k.upper(): k for k in protocol_map}
-
-        valid_protocols = list(protocol_map.keys())
+        protocols_list = self.get_options()
 
         while True:
             clear_screen()
-            print(textwrap.dedent(f"--- {selected_layer.upper()} ---").strip())
+            print(textwrap.dedent(f"--- {self.layer_name.upper()} ---").strip())
 
-            for protocol in valid_protocols:
+            for protocol in protocols_list:
                 print(f"- {protocol}")
 
             print()
@@ -90,11 +137,10 @@ class Layer:
                 case "\r":
                     choice = input("\nWhich Protocols?: ").upper()
 
-                    if choice in upper_map:
+                    if choice in protocols_list:
                         clear_screen()
 
-                        real_key = upper_map[choice]
-                        self.get_information(real_key, protocol_map[real_key])
+                        self.get_information(choice)
                         break
                     else:
                         print("There is no such protocol, please try again.")
@@ -135,18 +181,10 @@ def get_information():
         key = utils.get_key()
 
         match key:
-            case "1" | "2" | "3" | "4" | "7":
+            case "1" | "2" | "3" | "4" | "5" | "6" | "7":
                 utils.clear_buffer()
                 clear_screen()
                 Layer(int(key)).show_options()
-                break
-
-            case "5":
-                Layer(7, "Session").show_options()
-                break
-
-            case "6":
-                Layer(7, "Presentation").show_options()
                 break
 
             case "\x1b":
