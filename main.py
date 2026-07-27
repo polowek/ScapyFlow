@@ -32,8 +32,16 @@ class Layer:
         with open(CONFIG_PATH, "r", encoding="UTF-8") as f:
             config_data = load(f)
 
-        handler = config_data["protocols_config"][protocol]["handler"]
-        sniff_filter = config_data["protocols_config"][protocol]["sniff_filter"]
+        protocols_config = config_data.get("protocols_config", {})
+        
+        protocol_config = {}
+        for protocol_name, protocol_settings in protocols_config.items():
+            if protocol_name.lower() == protocol.lower():
+                protocol_config = protocol_settings
+                break
+
+        handler = protocol_config.get("handler", "packet_callback")
+        sniff_filter = protocol_config.get("sniff_filter", "")
 
         return handler, sniff_filter
 
@@ -105,7 +113,10 @@ class Layer:
         with open(CONFIG_PATH, "r", encoding="UTF-8") as f:
             config_data = load(f)
 
-        protocols_list = config_data["options_layers"][self.layer_name]
+        protocols_list = config_data.get("options_layers", {}).get(self.layer_name, [])
+
+        if not protocols_list:
+            protocols_list = ["[No available protocols for this layer]"]
 
         return protocols_list
 
@@ -137,7 +148,7 @@ class Layer:
                 case "\r":
                     choice = input("\nWhich Protocols?: ").upper()
 
-                    if choice in protocols_list:
+                    if choice in (p.upper() for p in protocols_list):
                         clear_screen()
 
                         self.get_information(choice)
