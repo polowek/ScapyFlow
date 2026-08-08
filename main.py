@@ -33,7 +33,7 @@ class Layer:
             config_data = load(f)
 
         protocols_config = config_data.get("protocols_config", {})
-        
+
         protocol_config = {}
         for protocol_name, protocol_settings in protocols_config.items():
             if protocol_name.lower() == protocol.lower():
@@ -47,12 +47,16 @@ class Layer:
 
     def get_information(self, protocol):
         module = None
-        
+
         current_folder = self.layer_name.lower()
-        other_folders = [layer.lower() for layer in self.layers.values() if layer.lower() != current_folder]
-        
+        other_folders = [
+            layer.lower()
+            for layer in self.layers.values()
+            if layer.lower() != current_folder
+        ]
+
         search_paths = [current_folder] + other_folders
-        
+
         searched_modules = []
         for folder_name in search_paths:
             module_path = f"protocols.{folder_name}.{protocol.lower()}"
@@ -73,8 +77,12 @@ class Layer:
         try:
             packet_callback = getattr(module, handler or "packet_callback")
         except AttributeError:
-            print(f"\n[ERROR] Module '{module.__name__}' does not have a handler function named '{handler}'!")
-            print(f"Please check your JSON configuration file and the function name in the protocol file.")
+            print(
+                f"\n[ERROR] Module '{module.__name__}' does not have a handler function named '{handler}'!"
+            )
+            print(
+                f"Please check your JSON configuration file and the function name in the protocol file."
+            )
 
             utils.get_key()
             return
@@ -87,9 +95,9 @@ class Layer:
                 "iface": selected_iface_guid,
                 "filter": sniff_filter,
                 "prn": packet_callback,
-                "store": False
+                "store": False,
             },
-            daemon=True
+            daemon=True,
         )
 
         sniffing_thread.start()
@@ -102,10 +110,12 @@ class Layer:
 
             if key == "\x1b":
                 print("\nStopping the sniffer...")
-                
+
                 collected_data = getattr(module, "data", [])
                 if collected_data:
-                    log = data_logger.DataLogger(protocol, selected_iface_guid, collected_data)
+                    log = data_logger.DataLogger(
+                        protocol, selected_iface_guid, collected_data
+                    )
                     log.save_log()
                 break
 

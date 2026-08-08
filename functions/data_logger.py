@@ -33,7 +33,9 @@ class DataLogger:
                     all_data = content
 
         except (JSONDecodeError, ValueError) as e:
-            print(f"[WARNING] File {DATA_SRC} is corrupted or empty (error: {e}). Starting with a fresh list.")
+            print(
+                f"[WARNING] File {DATA_SRC} is corrupted or empty (error: {e}). Starting with a fresh list."
+            )
 
         all_data.extend(self.data)
 

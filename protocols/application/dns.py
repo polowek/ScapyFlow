@@ -3,6 +3,8 @@ import textwrap
 import uuid
 from datetime import datetime
 
+from functions.utils import Colors
+
 data = []
 
 CONFIG_PATH = r"config/config.json"
@@ -22,8 +24,17 @@ def packet_callback(pkt):
             return
 
         transaction_id = pkt["DNS"].id
-        src_ip = pkt["IP"].src if pkt.haslayer("IP") else "Unknown"
-        dst_ip = pkt["IP"].dst if pkt.haslayer("IP") else "Unknown"
+
+        src_ip = (
+            pkt["IP"].src
+            if pkt.haslayer("IP")
+            else (pkt["IPv6"].src if pkt.haslayer("IPv6") else "Unknown")
+        )
+        dst_ip = (
+            pkt["IP"].dst
+            if pkt.haslayer("IP")
+            else (pkt["IPv6"].dst if pkt.haslayer("IPv6") else "Unknown")
+        )
 
         query_type_code = pkt["DNSQR"].qtype
         q_types = {
@@ -67,20 +78,18 @@ def packet_callback(pkt):
 
         data.append(info)
 
-        description = textwrap.dedent(f"""
-            --- {packet_direction} ---
+        header_color = Colors.MAGENTA if is_response else Colors.BLUE
 
-            Transaction ID: {info['transaction_id']}
-            Domain: {info['domain']}
-            Source: {info['src']}
-            Destination: {info['dst']}
-            Type: {info['qtype']}
-            IP Response: {info['ip_response']}
-
-            Time: {info['timestamp']}
-            [Internal Log ID: {info['id']}]
-
-            """).strip()
+        description = textwrap.dedent(f"""\
+            {Colors.GRAY}│ ───{Colors.RESET} {header_color}{Colors.BOLD}{packet_direction}{Colors.RESET} {Colors.GRAY}───{Colors.RESET}
+            {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Transaction ID:{Colors.RESET} {Colors.YELLOW}{info['transaction_id']}{Colors.RESET}
+            {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Domain:{Colors.RESET} {Colors.CYAN}{Colors.BOLD}{info['domain']}{Colors.RESET}
+            {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Source:{Colors.RESET} {Colors.GREEN}{info['src']}{Colors.RESET} ──> {Colors.GREEN}{info['dst']}{Colors.RESET}
+            {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Type:{Colors.RESET} {info['qtype']}
+            {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}IP Response:{Colors.RESET} {Colors.YELLOW}{info['ip_response']}{Colors.RESET}
+            {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Time:{Colors.RESET} {info['timestamp']}
+            {Colors.GRAY}└─ Log ID: {info['id']}{Colors.RESET}
+        """).strip()
 
         print()
         print(description)

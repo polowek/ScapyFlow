@@ -2,13 +2,19 @@ import textwrap
 import uuid
 from datetime import datetime
 
+from functions.utils import Colors
+
 data = []
 
 
 def packet_callback(pkt):
     if pkt.haslayer("TCP") and pkt.haslayer("Raw"):
         if pkt["TCP"].sport == 80 or pkt["TCP"].dport == 80:
-            src_ip = pkt["IP"].src if pkt.haslayer("IP") else "Unknown"
+            src_ip = (
+                pkt["IP"].src
+                if pkt.haslayer("IP")
+                else (pkt["IPv6"].src if pkt.haslayer("IPv6") else "Unknown")
+            )
 
             raw_data = pkt["Raw"].load
             if not (
@@ -38,8 +44,9 @@ def packet_callback(pkt):
 
             parts = first_line.split(" ")
             if first_line.startswith("HTTP/"):
-                status = parts[1] if len(parts) > 1 else "Unknown"
-            else:
+                if len(parts) > 1:
+                    status = parts[1]
+            elif parts:
                 method = parts[0]
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -61,30 +68,27 @@ def packet_callback(pkt):
             data.append(info)
 
             if is_request == "REQUEST":
-                description = textwrap.dedent(f"""
-                    --- HTTP REQUEST ---
-
-                    Method: {info['method']}
-                    Source: {info['src']}
-                    Host: {info['host']}
-                    User-Agent: {info['user-agent']}
-
-                    Time: {info['timestamp']}
-                    [Internal Log ID: {info['id']}]
-
-                    """).strip()
+                description = textwrap.dedent(f"""\
+                    {Colors.GRAY}│ ───{Colors.RESET} {Colors.GREEN}{Colors.BOLD}HTTP REQUEST{Colors.RESET} {Colors.GRAY}───{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Method:{Colors.RESET} {Colors.CYAN}{Colors.BOLD}{info['method']}{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Source:{Colors.RESET} {Colors.GREEN}{info['src']}{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Host:{Colors.RESET} {Colors.YELLOW}{info['host']}{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}User-Agent:{Colors.RESET} {info['user-agent']}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Time:{Colors.RESET} {info['timestamp']}
+                    {Colors.GRAY}└─ Log ID: {info['id']}{Colors.RESET}
+                """).strip()
             else:
-                description = textwrap.dedent(f"""
-                    --- HTTP RESPONSE ---
-
-                    Status: {info['status']}
-                    Source: {info['src']}
-                    Content-Type: {info['content-type']}
-
-                    Time: {info['timestamp']}
-                    [Internal Log ID: {info['id']}]
-
-                    """).strip()
+                status_color = (
+                    Colors.GREEN if info["status"].startswith("2") else Colors.RED
+                )
+                description = textwrap.dedent(f"""\
+                    {Colors.GRAY}│ ───{Colors.RESET} {Colors.MAGENTA}{Colors.BOLD}HTTP RESPONSE{Colors.RESET} {Colors.GRAY}───{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Status:{Colors.RESET} {status_color}{Colors.BOLD}{info['status']}{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Source:{Colors.RESET} {Colors.GREEN}{info['src']}{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Content-Type:{Colors.RESET} {Colors.YELLOW}{info['content-type']}{Colors.RESET}
+                    {Colors.GRAY}│{Colors.RESET} {Colors.GRAY}Time:{Colors.RESET} {info['timestamp']}
+                    {Colors.GRAY}└─ Log ID: {info['id']}{Colors.RESET}
+                """).strip()
 
             print()
             print(description)
