@@ -10,11 +10,8 @@ data = []
 def packet_callback(pkt):
     if pkt.haslayer("TCP") and pkt.haslayer("Raw"):
         if pkt["TCP"].sport == 80 or pkt["TCP"].dport == 80:
-            src_ip = (
-                pkt["IP"].src
-                if pkt.haslayer("IP")
-                else (pkt["IPv6"].src if pkt.haslayer("IPv6") else "Unknown")
-            )
+            ip_layer = pkt.getlayer("IP") or pkt.getlayer("IPv6")
+            src_ip = ip_layer.src if ip_layer else "Unknown"
 
             raw_data = pkt["Raw"].load
             if not (

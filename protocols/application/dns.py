@@ -25,16 +25,9 @@ def packet_callback(pkt):
 
         transaction_id = pkt["DNS"].id
 
-        src_ip = (
-            pkt["IP"].src
-            if pkt.haslayer("IP")
-            else (pkt["IPv6"].src if pkt.haslayer("IPv6") else "Unknown")
-        )
-        dst_ip = (
-            pkt["IP"].dst
-            if pkt.haslayer("IP")
-            else (pkt["IPv6"].dst if pkt.haslayer("IPv6") else "Unknown")
-        )
+        ip_layer = pkt.getlayer("IP") or pkt.getlayer("IPv6")
+        src_ip = ip_layer.src if ip_layer else "Unknown"
+        dst_ip = ip_layer.dst if ip_layer else "Unknown"
 
         query_type_code = pkt["DNSQR"].qtype
         q_types = {
